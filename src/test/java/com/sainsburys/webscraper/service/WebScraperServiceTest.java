@@ -7,6 +7,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,6 +40,8 @@ public class WebScraperServiceTest {
 	private static final String PRODUCT_URL_B = "productUrlB";
 	
 	private WebScraperService webScraper;
+	private ConnectionManager connectionManager = mock(ConnectionManager.class);
+	
 	private Element elementA = mock(Element.class);
 	private Element elementB = mock(Element.class);
 	
@@ -55,8 +60,6 @@ public class WebScraperServiceTest {
 	private Response responseA = mock(Response.class);
 	private Response responseB = mock(Response.class);
 	
-	private ConnectionManager connectionManager = mock(ConnectionManager.class);
-	
 	private Elements descriptionElementsA = mock(Elements.class);
 	private Elements descriptionElementsB = mock(Elements.class);
 	
@@ -64,43 +67,34 @@ public class WebScraperServiceTest {
 	private Element descriptionElementB = mock(Element.class);
 	
 	private Elements productElements = new Elements();
-	byte[] bytes = "bytes".getBytes();
+	
+	byte[] bytes = new byte[4096];
+
 	
 	@Before
 	public void setup() throws IOException {
-		webScraper = new WebScraperService("http://hiring-tests.s3-website-eu-west-1.amazonaws.com/2015_Developer_Scrape/5_products.html", connectionManager);
+		webScraper = new WebScraperService("testUrl", connectionManager);
 		
-		mockProductLinkA(PRODUCT_APRICOTS);
-		mockPricePerUnitA("£10/unit");
-		mockDescriptionA(APRICOTS_DESCRIPTION);
-		mockProductDetailsA();
-
-		mockProductLinkB(PRODUCT_APPLES);
-		mockPricePerUnitB("£10/unit");
-		mockDescriptionB(APPLE_DESCRIPTION);
-		mockProductDetailsB();
-		
-		when(responseA.bodyAsBytes()).thenReturn(bytes);
-		when(responseB.bodyAsBytes()).thenReturn(bytes);
+		mockForProductA();
+		mockForProductB();
 	}
 
 	@Test
 	public void extractsAProductFromAnElement() throws IOException {
-		webScraper = new WebScraperService("testUrl", connectionManager);
 		Product extractedProduct = webScraper.extractProductFromElement(elementA);
 		assertThat(extractedProduct.getTitle(), equalTo(PRODUCT_APRICOTS));
 		assertThat(extractedProduct.getUnitPrice(), equalTo(new BigDecimal(10)));
 		assertThat(extractedProduct.getDescription(), equalTo(APRICOTS_DESCRIPTION));
+		assertThat(extractedProduct.getSize(), equalTo("4.00kb"));
 	}
 	
 	@Test
 	public void extractsAListOfProductsFromElements() throws IOException {
-		webScraper = new WebScraperService("testUrl", connectionManager);
 		productElements.add(elementA);
 		productElements.add(elementB);
 		ArrayList<Product> extractedProductList = webScraper.extractProductList(productElements);
-		assertThat(extractedProductList.size(), equalTo(2));
 		
+		assertThat(extractedProductList.size(), equalTo(2));
 		assertThat( extractedProductList, contains(
 			    hasProperty("title", is(PRODUCT_APRICOTS)),
 			    hasProperty("title", is(PRODUCT_APPLES))
@@ -113,18 +107,33 @@ public class WebScraperServiceTest {
 		webScraper.extractProductsToJSon();
 	}
 	
+//	----------------- Mocking
 	
-//	----------------- Mocking methods
+	private void mockForProductB() throws IOException {
+		mockProductLinkB(PRODUCT_APPLES);
+		mockPricePerUnitB("£10/unit");
+		mockDescriptionB(APPLE_DESCRIPTION);
+		mockProductDetailsB();
+	}
+
+	private void mockForProductA() throws IOException {
+		mockProductLinkA(PRODUCT_APRICOTS);
+		mockPricePerUnitA("£10/unit");
+		mockDescriptionA(APRICOTS_DESCRIPTION);
+		mockProductDetailsA();
+	}
 	
 	private void mockProductDetailsA() throws IOException {
 		when(productDetailsConnectionA.get()).thenReturn(documentA);
 		when(productDetailsConnectionA.response()).thenReturn(responseA);
+		when(responseA.bodyAsBytes()).thenReturn(bytes);
 		when(connectionManager.connect(PRODUCT_URL_A)).thenReturn(productDetailsConnectionA);
 	}
 
 	private void mockProductDetailsB() throws IOException {
 		when(productDetailsConnectionB.get()).thenReturn(documentB);
 		when(productDetailsConnectionB.response()).thenReturn(responseB);
+		when(responseB.bodyAsBytes()).thenReturn(bytes);
 		when(connectionManager.connect(PRODUCT_URL_B)).thenReturn(productDetailsConnectionB);
 	}
 	
