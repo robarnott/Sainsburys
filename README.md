@@ -1,4 +1,5 @@
-This is a maven java project.
+This is a maven java project. 
+I used Maven 2.2.1, Java 1.8
 
 maven is available here - https://maven.apache.org/download.cgi
 
@@ -13,4 +14,4 @@ The command - mvn test - will run all tests.
 The main class WebScraper can be run from the commandline with - java WebScraper.java
 (javac WebScraper.java to compile)
 
-Alternatively import the project into an IDE and run WebScraper as a Java Application and the test as JUnit tests.
+Alternatively import the project into an IDE and run WebScraper as a Java Application and the tests as JUnit tests.
